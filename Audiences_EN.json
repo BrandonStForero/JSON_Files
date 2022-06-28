@@ -16,6 +16,16 @@
       ]
     },
     {
+      "name" : "TEST BRANDON",
+      "age" : 39,
+      "secretIdentity" : "BRANDON FORERO",
+      "powers" : [
+        "Million tonne punch",
+        "Damage resistance",
+        "Superhuman reflexes"
+      ]
+    },
+    {
       "name" : "Madame Uppercut",
       "age" : 39,
       "secretIdentity" : "Jane Wilson",
