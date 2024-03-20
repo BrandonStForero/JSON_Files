@@ -1,0 +1,127 @@
+function onOpen(e) {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('Api de Clima')
+    .addItem('check weather EN', 'checkWeather_EN')
+    .addItem('check weather FR', 'checkWeather_FR')
+    .addToUi();
+}
+
+function doGet(e) {
+
+    var lock = LockService.getPublicLock();
+    lock.waitLock(500);
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet2 = ss.getSheets()[0];
+
+    try {
+
+        const values = sheet2.getDataRange().getDisplayValues()
+        const headers = values.shift();
+        const data = []
+        const response = {'result': 'success', 'data': []};
+
+        // Agregar datos
+        for (let i = 0; i < values.length; i++) {
+            let row = values[i];
+            let register = {};
+            for (let j = 0; j < row.length; j++) {
+                register[headers[j]] = row[j];
+            }
+            data.push(register);
+        }
+
+        response.data = data
+
+        return ContentService
+            .createTextOutput(JSON.stringify(response))
+            .setMimeType(ContentService.MimeType.JSON);
+    } catch (e) {
+        return ContentService
+            .createTextOutput(JSON.stringify({'result': 'error', 'error': e}))
+            .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+
+function checkWeather_EN() {
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheets()[0];
+
+    const values = sheet.getDataRange().getDisplayValues()
+
+    values.forEach((el, ind) => {
+      el.push(ind+1) 
+    })
+
+    const headers = values.shift();
+    const cities = []
+    
+    let cityIndx = headers.findIndex(x => x == "City"),
+    weather_DescIndx = headers.findIndex(x => x == "Weather_desc"),
+    tempIndx = headers.findIndex(x => x == "Temp"),
+    humedadIndx = headers.findIndex(x => x == "Humedad"),
+    vientoIndx = headers.findIndex(x => x == "Viento")
+    climaIndx = headers.findIndex(x => x == "Clima")
+    last_updateIndx = headers.findIndex(x => x == "Last_update")
+
+    values.forEach((elemt) =>{
+      elemt.forEach((el, ind) =>{
+      if(ind == cityIndx){
+             cities.push(el)
+      }
+      })
+    } )
+
+     let allCities = cities.filter((item,index)=>{
+    return cities.indexOf(item) === index;
+  })
+
+    allCities.forEach((el, ind) => {
+
+      let flag = true
+      let newArray = []
+            let valores = values.filter((element, _) => {
+              if(flag && element[cityIndx] == el){
+                flag = false
+                return element;
+              }
+            });
+
+      for(i = 0;i < valores[0].length;i++){
+        let index = headers[i],
+            value = valores[0][i]
+        newArray[index] = value 
+      }
+
+      var requestOptions = {
+        method: 'GET',
+        redirect: 'follow'
+      };
+
+      Logger.log(newArray['City'])
+     
+      let request = UrlFetchApp.fetch(`https://api.openweathermap.org/data/2.5/weather?q=${newArray["City"]},${newArray["Country"]}&appid=9c285d705a123d7c788ed4cd05a2f9b5&lang=${newArray["Language"] ? newArray["Language"] : "EN"}&units=metric`, requestOptions),
+      data = JSON.parse(request)
+
+      values.forEach(value => {
+        if(newArray["City"] == value[cityIndx]){
+            //sheet.getRange(value[value.length - 1], climaIndx+1).setValue(data.weather[0].main)    
+            //sheet.getRange(value[value.length - 1], weather_DescIndx+1).setValue(data.weather[0].description)      
+            sheet.getRange(value[value.length - 1], tempIndx+1).setValue(data.main.temp)     
+            //sheet.getRange(value[value.length - 1], humedadIndx+1).setValue(data.main.humidity)     
+            //sheet.getRange(value[value.length - 1], vientoIndx+1).setValue(data.wind.speed)
+            let date = new Date();
+            sheet.getRange(value[value.length - 1], last_updateIndx+1).setValue(Utilities.formatDate(date, 'America/Bogota', 'yyyy-MM-dd HH:mm:ss'))  
+        }
+      })
+
+
+    })
+
+  //  https://api.openweathermap.org/data/2.5/weather?q=Pasto,CO&appid=9c285d705a123d7c788ed4cd05a2f9b5&lang=es&units=metric
+
+}
