@@ -50,8 +50,10 @@ function checkWeather_EN() {
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheets()[0];
+    var sheetHistory = ss.getSheets()[1];
 
     const values = sheet.getDataRange().getDisplayValues()
+    let lengthHistory = sheetHistory.getDataRange().getDisplayValues().length
 
     values.forEach((el, ind) => {
       el.push(ind+1) 
@@ -66,6 +68,7 @@ function checkWeather_EN() {
     humedadIndx = headers.findIndex(x => x == "Humedad"),
     vientoIndx = headers.findIndex(x => x == "Viento")
     climaIndx = headers.findIndex(x => x == "Clima")
+    countryIndx = headers.findIndex(x => x == "Country"),
     last_updateIndx = headers.findIndex(x => x == "Last_update")
 
     values.forEach((elemt) =>{
@@ -102,20 +105,24 @@ function checkWeather_EN() {
         redirect: 'follow'
       };
 
-      Logger.log(newArray['City'])
+      Logger.log(newArray['City'])      
      
       let request = UrlFetchApp.fetch(`https://api.openweathermap.org/data/2.5/weather?q=${newArray["City"]},${newArray["Country"]}&appid=9c285d705a123d7c788ed4cd05a2f9b5&lang=${newArray["Language"] ? newArray["Language"] : "EN"}&units=metric`, requestOptions),
       data = JSON.parse(request)
+      let date = new Date();
 
+      //Diligencia el histórico
+      lengthHistory = lengthHistory + 1
+      sheetHistory.getRange(lengthHistory, cityIndx+1).setValue(newArray["City"])
+      sheetHistory.getRange(lengthHistory, countryIndx+1).setValue(newArray["Country"])
+      sheetHistory.getRange(lengthHistory, tempIndx+1).setValue(data.main.temp)
+      sheetHistory.getRange(lengthHistory, last_updateIndx+1).setValue(Utilities.formatDate(date, 'America/Bogota', 'yyyy-MM-dd HH:mm:ss'))
+      
       values.forEach(value => {
-        if(newArray["City"] == value[cityIndx]){
-            //sheet.getRange(value[value.length - 1], climaIndx+1).setValue(data.weather[0].main)    
-            //sheet.getRange(value[value.length - 1], weather_DescIndx+1).setValue(data.weather[0].description)      
-            sheet.getRange(value[value.length - 1], tempIndx+1).setValue(data.main.temp)     
-            //sheet.getRange(value[value.length - 1], humedadIndx+1).setValue(data.main.humidity)     
-            //sheet.getRange(value[value.length - 1], vientoIndx+1).setValue(data.wind.speed)
-            let date = new Date();
-            sheet.getRange(value[value.length - 1], last_updateIndx+1).setValue(Utilities.formatDate(date, 'America/Bogota', 'yyyy-MM-dd HH:mm:ss'))  
+        if(newArray["City"] == value[cityIndx]){            
+            //Reemplaza el actual
+            sheet.getRange(value[value.length - 1], tempIndx+1).setValue(data.main.temp)
+            sheet.getRange(value[value.length - 1], last_updateIndx+1).setValue(Utilities.formatDate(date, 'America/Bogota', 'yyyy-MM-dd HH:mm:ss'))              
         }
       })
 
